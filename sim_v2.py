@@ -8,6 +8,13 @@
 
 """
 
+"""
+    [TODO]
+        -add at index
+        -waiting time and turn around time must factor in arrival_time
+
+        -more settings (context switch, round robin quantom, number of processes to randomly generate)
+"""
 #
 #   Process
 #
@@ -63,6 +70,8 @@ class queue():
         else:
             self.tail['next'] = n
             self.tail = n
+
+    #add at index
 
     def remove(self, pid=None):
 
@@ -139,14 +148,6 @@ class queue():
 
     def __repr__(self):
 
-        """
-        s = ""
-        for i in range(len(self)):
-            p = self[i]
-            s += str(p)
-        return s
-        """
-
         s = "\n\n      |PID|   |Arrival|   |CPU Burst|   |Priority|\n"
         width = len(s)
         s += '=' * width
@@ -155,6 +156,10 @@ class queue():
             if p.pid != -666:
                 s += "\n[%d] \t%d \t  %d \t      %d \t    %d\n" % (i, p.pid, p.arrival_time, p.burst_time, p.priority)
                 s += '-' * width
+
+        if len(self) == 0:
+            s += "\nEMPTY."
+
         return s
 
     def display(self, title=None):
@@ -829,7 +834,79 @@ def run_menu():
             # Any integer inputs other than values 1-5 we print an error message
             print ("\nINVALID INPUT.\n")
             time.sleep(1)  
-            run_menu()  
+            run_menu()
+
+
+def job_editing():
+    loop=True
+
+    global job_pool_master
+
+    while loop:
+        os.system('clear')
+        print ("OS SCHEDULING SIMULATION\n\nEdit Job Pool.\n")
+
+        try:
+            print(job_pool_master.display())
+        except:
+            #job pool empty
+            job_pool_master = queue()
+            print(job_pool_master.display())
+
+        print ("\nSelect Operation:")
+        print ("\n[1]: Remove Process")
+        print ("\n[2]: Add Process")
+
+        print (30 * "-" , "CMDS" , 30 * "-")
+        print ("BACK >> ['b']")
+        print ("Quit >> ['q']")
+
+        choice = input("\n\n \n[#]: ")
+
+        if choice=='1':
+            ui = input("Remove Process. Enter Feilds Seperated By Spaces: \n\t\t\tFeilds: [PID (Defualt Head)]\n\n>> ")
+
+            try:
+                if len(ui) > 0:
+                    try: 
+                        job_pool_master.remove(int(ui))
+                    except:pass
+                else:
+                    job_pool_master.remove()
+
+            except: pass
+
+        elif choice == "2":
+            ui = input("Add Process. Enter Feilds Seperated By Spaces: \n\t\t\tFeilds: [PID] [Arrival Time] [Burst Time] [Priority] [Index (Default Tail)]\n\n>>")
+
+            try:
+                feilds = ui.split(" ")
+                if len(feilds) == 5:
+                    try: 
+                        #job_pool_master.add(int(ui))
+                        print ("add at location")
+                    except:pass
+                else:
+                    feilds = [int(f) for f in feilds]
+                    p = Process(feilds[0], feilds[1], feilds[2], feilds[3])
+                    #p = Process(11, 11, 11, 11)
+                    job_pool_master.add(p)
+
+            except: pass
+
+        elif choice=='b':
+            job_menu()
+            return
+
+        elif choice=='q':
+            loop = False
+            return
+           
+        else:
+            print ("\nINVALID INPUT.\n")
+            time.sleep(1)  
+            job_editing()
+
 
 def job_menu():
     loop=True
@@ -854,6 +931,9 @@ def job_menu():
         print ("\n[1]: Random Generation (Default %d Processes" % RANDOM_GENERATION_NUMBER)
         print ("\n[2]: Load From File")
         print ("\n[3]: Edit Job Pool")
+
+        if len(job_pool_master) > 0:
+            print ("\n[4]: Continue")
 
         print (30 * "-" , "CMDS" , 30 * "-")
         print ("MORE SETTINGS >> ['c']")
@@ -880,6 +960,12 @@ def job_menu():
                 time.sleep(1)  
                 job_menu()
             
+        if choice == "3":
+            job_editing()
+
+        if choice == "4":
+            run_menu()
+            return
 
         if choice=='c':
             pass
@@ -941,125 +1027,3 @@ def main_menu():
 
 main_menu()
 
-"""
-def display_system_state(lts,sts,cpu,job_pool,gnatt,clock):
-    os.system('clear')
-
-
-    print ("System Clock: %d\n" % clock)
-    print (cpu.display())
-    print(sts.display())
-    print (lts.display())
-    print (gnatt.display())
-
-    print (30 * "-" , "CMDS" , 30 * "-")
-    print ("Step >> ['s']")
-    print ("Complete >> ['c']")
-    choice = input(">>: ")
-
-    if choice=='s':     
-        return True
-        
-    elif choice=='c':
-        return False
-
-    else:
-        input("Invalid")
-
-def step_through_seek(clock_seek, job_pool_master, alg):
-
-    #reset job pool and processes
-    job_pool = job_pool_master.__copy__()
-    for i in range(len(job_pool)):
-        job_pool[i].reset()
-
-    sts = STS(alg, scheduling_algorithm_quantoms[alg])
-    lts = LTS(job_pool, sts)
-    cpu = CPU(sts)
-    gnatt = Gnatt(cpu)
-
-    run = True
-    clock = 0
-
-    while run:
-        if clock == clock_seek:
-            display_system_state(lts,sts,cpu,job_pool,gnatt,clock)
-        lts.tick()
-        run = cpu.tick()
-        gnatt.tick()
-        clock += 1
-
-    g = gnatt.export()
-    print (gnatt.display())
-
-    #avg_tt = average_turnaround_time(g)
-    #avg_wt = average_wait_time(g)
-
-def step_through_mode(clock_seek, job_pool_master, alg):
-  
-    loop=True
-    clock = 0
-    while loop:
-        print (30 * "-" , "CMDS" , 30 * "-")
-        print ("Step >> ['s']")
-        print ("Seek >> ['#']")
-        print ("Complete >> ['c']")
-        print ("Quit >> ['q']")
-
-        choice = input("Enter seek [1->]: ")
-         
-        #integer input
-        try:
-            clock_seek = int(choice)
-            print ("seek to %d" % clock_seek)
-            step_through_mode(clock_seek, job_pool_master, FCFS)
-        except: print ("ERROR")
-
-        if choice=='s':
-            clock += 1
-            step_through_mode(clock, job_pool_master, FCFS)
-
-        elif choice=='c':
-            loop = False
-            
-        elif choice=='q':
-            loop = False
-           
-        else:
-            # Any integer inputs other than values 1-5 we print an error message
-            input("Invalid")
-            #step_through_mode(clock, job_pool_master, FCFS)
-"""
-"""
-for alg in scheduling_algorithms:
-
-    #reset job pool and processes
-    job_pool = job_pool_master.__copy__()
-    for i in range(len(job_pool)):
-        job_pool[i].reset()
-
-    sts = STS(alg, scheduling_algorithm_quantoms[alg])
-    lts = LTS(job_pool, sts)
-    cpu = CPU(sts)
-    gnatt = Gnatt(cpu)
-
-    run = True
-    clock = 0
-    display = True
-    while run:
-        if display:
-            display = display_system_state(lts,sts,cpu,job_pool,gnatt,clock)
-        lts.tick()
-        run = cpu.tick()
-        gnatt.tick()
-        clock += 1
-
-    g = gnatt.export()
-    print (gnatt.display())
-
-    avg_tt = average_turnaround_time(g)
-    avg_wt = average_wait_time(g)
-
-
-    print ("ALG: %s, \tQuantom: %s, \twt: %f, \ttt: %f\n" % ( scheduling_algorithms[alg], str(scheduling_algorithm_quantoms[alg]), avg_wt, avg_tt ) )
-"""
